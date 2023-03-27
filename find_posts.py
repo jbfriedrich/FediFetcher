@@ -196,7 +196,6 @@ def get_new_followings(server, user_id, max, known_followings):
     log(f"Got {len(following)} followings, {len(new_followings)} of which are new")
         
     return new_followings
-    
 
 def get_user_id(server, user):
     """Get the user id from the server, using a username"""
@@ -215,7 +214,6 @@ def get_user_id(server, user):
         raise Exception(
             f"Error getting URL {url}. Status code: {response.status_code}"
         )
-
 
 def get_timeline(server, access_token, max):
     """Get all post in the user's home timeline"""
@@ -308,7 +306,6 @@ def get_active_user_ids(server, access_token, reply_interval_hours):
             f"Error getting user IDs on server {server}. Status code: {resp.status_code}"
         )
 
-
 def get_all_reply_toots(
     server, user_ids, access_token, seen_urls, reply_interval_hours
 ):
@@ -324,7 +321,6 @@ def get_all_reply_toots(
     )
     log(f"Found {len(reply_toots)} reply toots")
     return reply_toots
-
 
 def get_reply_toots(user_id, server, access_token, seen_urls, reply_since):
     """get replies by the user to other users since the given date"""
@@ -362,7 +358,6 @@ def get_reply_toots(user_id, server, access_token, seen_urls, reply_since):
         f"Error getting replies for user {user_id} on server {server}. Status code: {resp.status_code}"
     )
 
-
 def get_all_known_context_urls(server, reply_toots,parsed_urls):
     """get the context toots of the given toots from their original server"""
     known_context_urls = set(
@@ -380,13 +375,11 @@ def get_all_known_context_urls(server, reply_toots,parsed_urls):
     log(f"Found {len(known_context_urls)} known context toots")
     return known_context_urls
 
-
 def toot_has_parseable_url(toot,parsed_urls):
     parsed = parse_url(toot["url"] if toot["reblog"] is None else toot["reblog"]["url"],parsed_urls)
     if(parsed is None) :
         return False
     return True
-                
 
 def get_all_replied_toot_server_ids(
     server, reply_toots, replied_toot_server_ids, parsed_urls
@@ -399,7 +392,6 @@ def get_all_replied_toot_server_ids(
             for toot in reply_toots
         ),
     )
-
 
 def get_replied_toot_server_id(server, toot, replied_toot_server_ids,parsed_urls):
     """get the server and ID of the toot the given toot replied to"""
@@ -481,7 +473,6 @@ def parse_mastodon_url(url):
         return (match.group("server"), match.group("toot_id"))
     return None
 
-
 def parse_pleroma_url(url):
     """parse a Pleroma URL and return the server and ID"""
     match = re.match(r"https://(?P<server>.*)/objects/(?P<toot_id>.*)", url)
@@ -503,7 +494,6 @@ def parse_pleroma_profile_url(url):
     if match is not None:
         return (match.group("server"), match.group("username"))
     return None
-
 
 def get_redirect_url(url):
     """get the URL given URL redirects to"""
@@ -527,7 +517,6 @@ def get_redirect_url(url):
         )
         return None
 
-
 def get_all_context_urls(server, replied_toot_ids):
     """get the URLs of the context toots of the given toots"""
     return filter(
@@ -537,7 +526,6 @@ def get_all_context_urls(server, replied_toot_ids):
             for (url, (server, toot_id)) in replied_toot_ids
         ),
     )
-
 
 def get_toot_context(server, toot_id, toot_url):
     """get the URLs of the context toots of the given toot"""
@@ -567,7 +555,6 @@ def get_toot_context(server, toot_id, toot_url):
     )
     return []
 
-
 def add_context_urls(server, access_token, context_urls, seen_urls):
     """add the given toot URLs to the server"""
     count = 0
@@ -582,7 +569,6 @@ def add_context_urls(server, access_token, context_urls, seen_urls):
                 failed += 1
 
     log(f"Added {count} new context toots (with {failed} failures)")
-
 
 def add_context_url(url, server, access_token):
     """add the given toot URL to the server"""
@@ -646,7 +632,6 @@ def get_paginated_mastodon(url, max, headers = {}, timeout = 0, max_tries = 5):
     
     return result
 
-
 def get(url, headers = {}, timeout = 0, max_tries = 5):
     """A simple wrapper to make a get request while providing our user agent, and respecting rate limits"""
     h = headers.copy()
@@ -654,7 +639,10 @@ def get(url, headers = {}, timeout = 0, max_tries = 5):
         h['User-Agent'] = 'FediFetcher (https://go.thms.uk/mgr)'
 
     if timeout == 0:
-        timeout = arguments.http_timeout
+        if os.getenv("HTTP_TIMEOUT"):
+            timeout = int(os.getenv('HTTP_TIMEOUT'))
+        else:
+            timeout = arguments.http_timeout
         
     response = requests.get( url, headers= h, timeout=timeout)
     if response.status_code == 429:
@@ -697,25 +685,26 @@ class OrderedSet:
     def __len__(self):
         return len(self._dict)
 
-
 if __name__ == "__main__":
     start = datetime.now()
 
     log(f"Starting FediFetcher")
 
-    arguments = argparser.parse_args()
-
     runId = uuid.uuid4()
 
-    if(arguments.on_start != None and arguments.on_start != ''):
-        try:
-            get(f"{arguments.on_start}?rid={runId}")
-        except Exception as ex:
-            log(f"Error getting callback url: {ex}")
+    log("Looking for environment variables...")
+    env_var_enabled=os.getenv('LOAD_FROM_ENV')
+    if not env_var_enabled:
+        arguments = argparser.parse_args()
+        if(arguments.on_start != None and arguments.on_start != ''):
+            try:
+                get(f"{arguments.on_start}?rid={runId}")
+            except Exception as ex:
+                log(f"Error getting callback url: {ex}")
 
     LOCK_FILE = 'artifacts/lock.lock'
 
-    if( os.path.exists(LOCK_FILE)):
+    if os.path.exists(LOCK_FILE):
         log(f"Lock file exists at {LOCK_FILE}")
 
         try:
@@ -752,7 +741,6 @@ if __name__ == "__main__":
         REPLIED_TOOT_SERVER_IDS_FILE = "artifacts/replied_toot_server_ids"
         KNOWN_FOLLOWINGS_FILE = "artifacts/known_followings"
 
-
         SEEN_URLS = OrderedSet([])
         if os.path.exists(SEEN_URLS_FILE):
             with open(SEEN_URLS_FILE, "r", encoding="utf-8") as f:
@@ -768,19 +756,42 @@ if __name__ == "__main__":
             with open(KNOWN_FOLLOWINGS_FILE, "r", encoding="utf-8") as f:
                 KNOWN_FOLLOWINGS = OrderedSet(f.read().splitlines())
 
+        if env_var_enabled:
+            log("Using environment variables for configuration")
+            server_name = os.getenv('MASTODON_SERVER')
+            access_token = os.getenv('ACCESS_TOKEN')
+            home_tl_length = int(os.getenv('HOME_TIMELINE_LENGTH'))
+            reply_interval = int(os.getenv('REPLY_INTERVAL_IN_HOURS'))
+            user_name = os.getenv('USER')
+            max_followings = int(os.getenv('MAX_FOLLOWINGS'))
+            max_followers = int(os.getenv('MAX_FOLLOWERS'))
+            max_follow_requests = int(os.getenv('MAX_FOLLOW_REQUESTS'))
+            max_bookmarks = int(os.getenv('MAX_BOOKMARKS'))
+        else:
+            log("Environment variables not found, using script arguments")
+            server_name = arguments.server
+            access_token = arguments.access_token
+            reply_interval = arguments.reply_interval_in_hours
+            home_tl_length = arguments.home_timeline_length
+            max_followings = arguments.max_followings
+            user_name = arguments.user
+            max_followers = arguments.max_followers
+            max_follow_requests = arguments.max_follow_requests
+            max_bookmarks = arguments.max_bookmarks
+
         pull_context(
-            arguments.server,
-            arguments.access_token,
+            server_name,
+            access_token,
             SEEN_URLS,
             REPLIED_TOOT_SERVER_IDS,
-            arguments.reply_interval_in_hours,
-            arguments.home_timeline_length,
-            arguments.max_followings,
-            arguments.user,
+            reply_interval,
+            home_tl_length,
+            max_followings,
+            user_name,
             KNOWN_FOLLOWINGS,
-            arguments.max_followers,
-            arguments.max_follow_requests,
-            arguments.max_bookmarks
+            max_followers,
+            max_follow_requests,
+            max_bookmarks
         )
 
         with open(KNOWN_FOLLOWINGS_FILE, "w", encoding="utf-8") as f:
