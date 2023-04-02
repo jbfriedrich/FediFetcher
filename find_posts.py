@@ -700,14 +700,14 @@ if __name__ == "__main__":
             with open(LOCK_FILE, "r", encoding="utf-8") as f:
                 lock_time = parser.parse(f.read())
 
-            if (datetime.now() - lock_time).total_seconds() >= arguments.lock_hours * 60 * 60: 
+            if (datetime.now() - lock_time).total_seconds() >= LOCK_HOURS * 60 * 60: 
                 os.remove(LOCK_FILE)
                 log(f"Lock file has expired. Removed lock file.")
             else:
-                log(f"Lock file age is {datetime.now() - lock_time} - below --lock-hours={arguments.lock_hours} provided.")
-                if(arguments.on_fail != None and arguments.on_fail != ''):
+                log(f"Lock file age is {datetime.now() - lock_time}. Value is below threshold of {LOCK_HOURS} hours.")
+                if(on_fail != None and on_fail != ''):
                     try:
-                        get(f"{arguments.on_fail}?rid={runId}")
+                        get(f"{on_fail}?rid={runId}")
                     except Exception as ex:
                         log(f"Error getting callback url: {ex}")
                 sys.exit(1)
