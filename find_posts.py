@@ -615,7 +615,7 @@ def get_paginated_mastodon(url, max, headers = {}, timeout = 0, max_tries = 5):
     
     return result
 
-def get(url, headers = {}, timeout = 0, max_tries = 5):
+def get(url, headers = {}, timeout = 30, max_tries = 5):
     """A simple wrapper to make a get request while providing our user agent, and respecting rate limits"""
     h = headers.copy()
     if 'User-Agent' not in h:
