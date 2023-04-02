@@ -44,7 +44,6 @@ def pull_context(
         context_urls = get_all_context_urls(server, replied_toot_ids)
         add_context_urls(server, access_token, context_urls, seen_urls)
 
-
     if max_home_timeline_length > 0:
         """Do the same with any toots on the key owner's home timeline """
         timeline_toots = get_timeline(server, access_token, max_home_timeline_length)
@@ -170,14 +169,14 @@ def get_new_followings(server, user_id, max, known_followings):
     """Get any new followings for the specified user, up to the max number provided"""
     following = get_paginated_mastodon(f"https://{server}/api/v1/accounts/{user_id}/following", max)
 
-    # Remove any we already know about    
+    # Remove any we already know about
     new_followings = list(filter(
         lambda user: user['acct'] not in known_followings,
         following
     ))
-    
+
     log(f"Got {len(following)} followings, {len(new_followings)} of which are new")
-        
+
     return new_followings
 
 def get_user_id(server, user):
@@ -724,8 +723,7 @@ if __name__ == "__main__":
     with open(LOCK_FILE, "w", encoding="utf-8") as f:
         f.write(f"{datetime.now()}")
 
-    try:
-
+    try:f
         SEEN_URLS_FILE = "artifacts/seen_urls"
         REPLIED_TOOT_SERVER_IDS_FILE = "artifacts/replied_toot_server_ids"
         KNOWN_FOLLOWINGS_FILE = "artifacts/known_followings"
