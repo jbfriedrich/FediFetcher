@@ -9,25 +9,8 @@ import re
 import sys
 import requests
 import time
-import argparse
 import uuid
 
-argparser=argparse.ArgumentParser()
-
-argparser.add_argument('--server', required=True, help="Required: The name of your server (e.g. `mstdn.thms.uk`)")
-argparser.add_argument('--access-token', required=True, help="Required: The access token can be generated at https://<server>/settings/applications, and must have read:search, read:statuses and admin:read:accounts scopes")
-argparser.add_argument('--reply-interval-in-hours', required = False, type=int, default=0, help="Fetch remote replies to posts that have received replies from users on your own instance in this period")
-argparser.add_argument('--home-timeline-length', required = False, type=int, default=0, help="Look for replies to posts in the API-Key owner's home timeline, up to this many posts")
-argparser.add_argument('--user', required = False, default='', help="Use together with --max-followings or --max-followers to tell us which user's followings/followers we should backfill")
-argparser.add_argument('--max-followings', required = False, type=int, default=0, help="Backfill posts for new accounts followed by --user. We'll backfill at most this many followings' posts")
-argparser.add_argument('--max-followers', required = False, type=int, default=0, help="Backfill posts for new accounts following --user. We'll backfill at most this many followers' posts")
-argparser.add_argument('--max-follow-requests', required = False, type=int, default=0, help="Backfill posts of the API key owners pending follow requests. We'll backfill at most this many requester's posts")
-argparser.add_argument('--max-bookmarks', required = False, type=int, default=0, help="Fetch remote replies to the API key owners Bookmarks. We'll fetch replies to at most this many bookmarks")
-argparser.add_argument('--http-timeout', required = False, type=int, default=5, help="The timeout for any HTTP requests to your own, or other instances.")
-argparser.add_argument('--lock-hours', required = False, type=int, default=24, help="The lock timeout in hours.")
-argparser.add_argument('--on-done', required = False, default=None, help="Provide a url that will be pinged when processing has completed. You can use this for 'dead man switch' monitoring of your task")
-argparser.add_argument('--on-start', required = False, default=None, help="Provide a url that will be pinged when processing is starting. You can use this for 'dead man switch' monitoring of your task")
-argparser.add_argument('--on-fail', required = False, default=None, help="Provide a url that will be pinged when processing has failed. You can use this for 'dead man switch' monitoring of your task")
 
 def pull_context(
     server,
@@ -638,12 +621,6 @@ def get(url, headers = {}, timeout = 0, max_tries = 5):
     if 'User-Agent' not in h:
         h['User-Agent'] = 'FediFetcher (https://go.thms.uk/mgr)'
 
-    if timeout == 0:
-        if os.getenv("HTTP_TIMEOUT"):
-            timeout = int(os.getenv('HTTP_TIMEOUT'))
-        else:
-            timeout = arguments.http_timeout
-        
     response = requests.get( url, headers= h, timeout=timeout)
     if response.status_code == 429:
         if max_tries > 0:
@@ -692,17 +669,29 @@ if __name__ == "__main__":
 
     runId = uuid.uuid4()
 
-    log("Looking for environment variables...")
-    env_var_enabled=os.getenv('LOAD_FROM_ENV')
-    if not env_var_enabled:
-        arguments = argparser.parse_args()
-        if(arguments.on_start != None and arguments.on_start != ''):
-            try:
-                get(f"{arguments.on_start}?rid={runId}")
-            except Exception as ex:
-                log(f"Error getting callback url: {ex}")
+    log("Loading environment variables for configuration")
 
-    LOCK_FILE = 'artifacts/lock.lock'
+    server_name = os.getenv('MASTODON_SERVER')
+    access_token = os.getenv('ACCESS_TOKEN')
+    home_tl_length = int(os.getenv('HOME_TIMELINE_LENGTH'))
+    reply_interval = int(os.getenv('REPLY_INTERVAL_IN_HOURS'))
+    user_name = os.getenv('MASTODON_USER')
+    max_followings = int(os.getenv('MAX_FOLLOWINGS'))
+    max_followers = int(os.getenv('MAX_FOLLOWERS'))
+    max_follow_requests = int(os.getenv('MAX_FOLLOW_REQUESTS'))
+    max_bookmarks = int(os.getenv('MAX_BOOKMARKS'))
+    on_start = os.getenv('URL_ON_START')
+    on_fail = os.getenv('URL_ON_FAIL')
+    on_succes = os.getenv('URL_ON_SUCCESS')
+    TIMEOUT = int(os.getenv('HTTP_TIMEOUT'))
+    LOCK_FILE = os.getenv('LOCK_FILE')
+    LOCK_HOURS = int(os.getenv('LOCK_HOURS'))
+    
+    if(on_start is not None and on_start != ''):
+        try:
+            get(f"{on_start}?rid={runId}")
+        except Exception as ex:
+            log(f"Error getting callback url: {ex}")
 
     if os.path.exists(LOCK_FILE):
         log(f"Lock file exists at {LOCK_FILE}")
@@ -725,9 +714,9 @@ if __name__ == "__main__":
 
         except Exception:
             log(f"Cannot read logfile age - aborting.")
-            if(arguments.on_fail != None and arguments.on_fail != ''):
+            if(on_fail != None and on_fail != ''):
                 try:
-                    get(f"{arguments.on_fail}?rid={runId}")
+                    get(f"{on_fail}?rid={runId}")
                 except Exception as ex:
                     log(f"Error getting callback url: {ex}")
             sys.exit(1)
@@ -756,29 +745,6 @@ if __name__ == "__main__":
             with open(KNOWN_FOLLOWINGS_FILE, "r", encoding="utf-8") as f:
                 KNOWN_FOLLOWINGS = OrderedSet(f.read().splitlines())
 
-        if env_var_enabled:
-            log("Using environment variables for configuration")
-            server_name = os.getenv('MASTODON_SERVER')
-            access_token = os.getenv('ACCESS_TOKEN')
-            home_tl_length = int(os.getenv('HOME_TIMELINE_LENGTH'))
-            reply_interval = int(os.getenv('REPLY_INTERVAL_IN_HOURS'))
-            user_name = os.getenv('USER')
-            max_followings = int(os.getenv('MAX_FOLLOWINGS'))
-            max_followers = int(os.getenv('MAX_FOLLOWERS'))
-            max_follow_requests = int(os.getenv('MAX_FOLLOW_REQUESTS'))
-            max_bookmarks = int(os.getenv('MAX_BOOKMARKS'))
-        else:
-            log("Environment variables not found, using script arguments")
-            server_name = arguments.server
-            access_token = arguments.access_token
-            reply_interval = arguments.reply_interval_in_hours
-            home_tl_length = arguments.home_timeline_length
-            max_followings = arguments.max_followings
-            user_name = arguments.user
-            max_followers = arguments.max_followers
-            max_follow_requests = arguments.max_follow_requests
-            max_bookmarks = arguments.max_bookmarks
-
         pull_context(
             server_name,
             access_token,
@@ -805,9 +771,9 @@ if __name__ == "__main__":
 
         os.remove(LOCK_FILE)
 
-        if(arguments.on_done != None and arguments.on_done != ''):
+        if(on_done != None and on_done != ''):
             try:
-                get(f"{arguments.on_done}?rid={runId}")
+                get(f"{on_done}?rid={runId}")
             except Exception as ex:
                 log(f"Error getting callback url: {ex}")
 
@@ -816,9 +782,9 @@ if __name__ == "__main__":
     except Exception as ex:
         os.remove(LOCK_FILE)
         log(f"Job failed after {datetime.now() - start}.")
-        if(arguments.on_fail != None and arguments.on_fail != ''):
+        if(on_fail != None and on_fail != ''):
             try:
-                get(f"{arguments.on_fail}?rid={runId}")
+                get(f"{on_fail}?rid={runId}")
             except Exception as ex:
                 log(f"Error getting callback url: {ex}")
         raise
