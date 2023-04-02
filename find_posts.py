@@ -586,7 +586,7 @@ def add_context_url(url, server, access_token):
         )
         return False
     
-def get_paginated_mastodon(url, max, headers = {}, timeout = 0, max_tries = 5):
+def get_paginated_mastodon(url, max, headers = {}, timeout = 30, max_tries = 5):
     """Make a paginated request to mastodon"""
     response = get(f"{url}?limit={max}", headers, timeout, max_tries)
 
