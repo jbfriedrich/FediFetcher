@@ -629,7 +629,7 @@ def get(url, headers = {}, timeout = 30, max_tries = 5):
             log(f"Rate Limit hit requesting {url}. Waiting {wait} sec to retry at {response.headers['x-ratelimit-reset']}")
             time.sleep(wait)
             return get(url, headers, timeout, max_tries - 1)
-        
+
         raise Exception(f"Maximum number of retries exceeded for rate limited request {url}")
     return response
 
@@ -685,7 +685,7 @@ if __name__ == "__main__":
     TIMEOUT = int(os.getenv('HTTP_TIMEOUT'))
     LOCK_FILE = os.getenv('LOCK_FILE')
     LOCK_HOURS = int(os.getenv('LOCK_HOURS'))
-    
+
     if(on_start is not None and on_start != ''):
         try:
             get(f"{on_start}?rid={runId}")
@@ -723,7 +723,7 @@ if __name__ == "__main__":
     with open(LOCK_FILE, "w", encoding="utf-8") as f:
         f.write(f"{datetime.now()}")
 
-    try:f
+    try:
         SEEN_URLS_FILE = "artifacts/seen_urls"
         REPLIED_TOOT_SERVER_IDS_FILE = "artifacts/replied_toot_server_ids"
         KNOWN_FOLLOWINGS_FILE = "artifacts/known_followings"
