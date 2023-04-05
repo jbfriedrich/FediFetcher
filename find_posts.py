@@ -681,7 +681,7 @@ if __name__ == "__main__":
     max_bookmarks = int(os.getenv('MAX_BOOKMARKS'))
     on_start = os.getenv('URL_ON_START')
     on_fail = os.getenv('URL_ON_FAIL')
-    on_succes = os.getenv('URL_ON_SUCCESS')
+    on_done = os.getenv('URL_ON_DONE')
     TIMEOUT = int(os.getenv('HTTP_TIMEOUT'))
     LOCK_FILE = os.getenv('LOCK_FILE')
     LOCK_HOURS = int(os.getenv('LOCK_HOURS'))
