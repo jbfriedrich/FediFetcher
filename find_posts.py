@@ -235,7 +235,6 @@ def get_user_posts_misskey(userName, webserver):
     except Exception as ex:
         log(f"Error getting posts by user {userName} from {webserver}. Exception: {ex}")
         return None
-    
 
 def get_new_follow_requests(server, access_token, max, known_followings):
     """Get any new follow requests for the specified user, up to the max number provided"""
@@ -449,7 +448,6 @@ def get_reply_toots(user_id, server, access_token, seen_urls, reply_since):
     raise Exception(
         f"Error getting replies for user {user_id} on server {server}. Status code: {resp.status_code}"
     )
-
 
 def get_all_known_context_urls(server, reply_toots, parsed_urls, seen_hosts):
     """get the context toots of the given toots from their original server"""
@@ -678,7 +676,6 @@ def get_redirect_url(url):
         )
         return None
 
-
 def get_all_context_urls(server, replied_toot_ids, seen_hosts):
     """get the URLs of the context toots of the given toots"""
     return filter(
@@ -688,7 +685,6 @@ def get_all_context_urls(server, replied_toot_ids, seen_hosts):
             for (url, (server, toot_id)) in replied_toot_ids
         ),
     )
-
 
 def get_toot_context(server, toot_id, toot_url, seen_hosts):
     """get the URLs of the context toots of the given toot"""
@@ -1011,7 +1007,6 @@ class ServerList:
     def toJSON(self):
         return json.dumps(self._dict,default=str)
 
-
 class OrderedSet:
     """An ordered set implementation over a dict"""
 
@@ -1226,16 +1221,10 @@ if __name__ == "__main__":
                 setattr(arguments, key.lower().replace('-','_'), config[key])
 
         else:
-            log(f"Config file {arguments.config} doesn't exist")
-            sys.exit(1)
-
-    if(arguments.server == None or arguments.access_token == None):
-        log("You must supply at least a server name and an access token")
-        sys.exit(1)
+            log(f"Config file {arguments.config} doesn't exist. Assuming configuration via environment variables.")
 
     # in case someone provided the server name as url instead, 
     setattr(arguments, 'server', re.sub(r"^(https://)?([^/]*)/?$", "\\2", arguments.server))
-        
 
     runId = uuid.uuid4()
 
@@ -1257,17 +1246,16 @@ if __name__ == "__main__":
     LOCK_FILE = os.getenv('LOCK_FILE')
     LOCK_HOURS = int(os.getenv('LOCK_HOURS'))
 
-    if(on_start is not None and on_start != ''):
+    if (on_start is not None and on_start != ''):
         try:
             get(f"{on_start}?rid={runId}")
         except Exception as ex:
             log(f"Error getting callback url: {ex}")
 
-    if arguments.lock_file is None:
-        arguments.lock_file = os.path.join(arguments.state_dir, 'lock.lock')
-    LOCK_FILE = arguments.lock_file
+    if (arguments.lock_file is None or LOCK_FILE is None):
+        LOCK_FILE = './lock.lock'
 
-    if( os.path.exists(LOCK_FILE)):
+    if (os.path.exists(LOCK_FILE)):
         log(f"Lock file exists at {LOCK_FILE}")
 
         try:
